@@ -1,0 +1,26 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="${relativePackage}.${activityClass}" >
+
+    <ImageView 
+        android:id="@+id/background"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/background"
+        android:scaleType="fitXY" />
+    
+    <ImageView
+        android:id="@+id/character"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:src="@drawable/pet0_neutral_left1"
+        android:clickable="true" />
+    
+    <Spinner 
+        android:id="@+id/setMood"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+</FrameLayout>
