@@ -9,6 +9,7 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "face_detection.h"
+#include "histogram_equalization.h"
 
 #include <iostream>
 #include <stdio.h>
@@ -36,10 +37,16 @@ void face_detection(string input_image, string output_image)
 
 	if (faces.size() > 1)
 	{
-		puts("WARNING: Achou mais de uma face!");
+		printf("WARNING: Achou %d faces!\n", faces.size());
 	}
 
-	imwrite(output_image, image(faces[0]));
+	imwrite(output_image, equalize_histogram(image(faces[0])));
+
+	for (int i = 1; i < faces.size(); i++) {
+		char extra_face[15];
+		sprintf(extra_face, "_%d.jpg", i);
+		imwrite(extra_face, equalize_histogram(image(faces[i])));
+	}
 }
 
 void check_arguments(int argc, char** argv)
