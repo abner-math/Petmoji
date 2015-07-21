@@ -1,10 +1,3 @@
-/*
- * facedetection.cpp
- *
- *  Created on: Jul 16, 2015
- *      Author: armstrong
- */
-
 #include "opencv2/objdetect/objdetect.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
@@ -29,37 +22,37 @@ Detector::Detector(string frontal_face_cascade_path,
 	eyes_classifier.load(eyes_cascade_path);
 }
 
-vector<Rect> Detector::detect_faces(Mat image)
+vector<Rect> Detector::detect_faces(Mat image, double scale_factor, int min_neighbors, int min_size_x, int min_size_y)
 {
-	std::vector<Rect> faces;
-	frontal_face_classifier.detectMultiScale(image, faces, 1.1, 2, 0|CV_HAAR_SCALE_IMAGE, Size(30, 30));
+	vector<Rect> faces;
+	frontal_face_classifier.detectMultiScale(image, faces, scale_factor, min_neighbors, 0|CV_HAAR_SCALE_IMAGE, Size(min_size_x, min_size_y));
 	return faces;
 }
 
 vector<Rect> Detector::detect_right_eye(Mat image)
 {
-	std::vector<Rect> right_eyes;
+	vector<Rect> right_eyes;
 	right_eye_classifier.detectMultiScale(image, right_eyes, 1.1, 2, 0|CV_HAAR_SCALE_IMAGE, Size(30, 30));
 	return right_eyes;
 }
 
 vector<Rect> Detector::detect_left_eye(Mat image)
 {
-	std::vector<Rect> left_eyes;
+	vector<Rect> left_eyes;
 	left_eye_classifier.detectMultiScale(image, left_eyes, 1.1, 2, 0|CV_HAAR_SCALE_IMAGE, Size(30, 30));
 	return left_eyes;
 }
 
 vector<Rect> Detector::detect_smile(Mat image)
 {
-	std::vector<Rect> smiles;
+	vector<Rect> smiles;
 	smile_classifier.detectMultiScale(image, smiles, 1.1, 2, 0|CV_HAAR_SCALE_IMAGE, Size(100, 100));
 	return smiles;
 }
 
 vector<Rect> Detector::detect_eyes(Mat image)
 {
-	std::vector<Rect> eyes;
+	vector<Rect> eyes;
 	eyes_classifier.detectMultiScale(image, eyes, 1.1, 2, 0|CV_HAAR_SCALE_IMAGE, Size(30, 30));
 	return eyes;
 }

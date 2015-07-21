@@ -1,10 +1,3 @@
-/*
- * histogram_equalization.h
- *
- *  Created on: Jul 20, 2015
- *      Author: armstrong
- */
-
 #ifndef HISTOGRAM_EQUALIZATION_H_
 #define HISTOGRAM_EQUALIZATION_H_
 

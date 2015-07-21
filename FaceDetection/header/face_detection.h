@@ -1,10 +1,3 @@
-/*
- * face_detection.h
- *
- *  Created on: Jul 16, 2015
- *      Author: armstrong
- */
-
 #ifndef HEADER_FACE_DETECTION_H_
 #define HEADER_FACE_DETECTION_H_
 
@@ -24,7 +17,7 @@ class Detector
 	CascadeClassifier eyes_classifier;
 
 	public:
-	vector<Rect> detect_faces(Mat image);
+	vector<Rect> detect_faces(Mat image, double scale_factor, int min_neighbors, int min_size_x, int min_size_y);
 	vector<Rect> detect_right_eye(Mat image);
 	vector<Rect> detect_left_eye(Mat image);
 	vector<Rect> detect_smile(Mat image);
