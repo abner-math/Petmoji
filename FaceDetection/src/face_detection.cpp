@@ -2,6 +2,8 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "face_detection.h"
+#include "histogram_equalization.h"
+#include "smoothing.h"
 
 #include <iostream>
 #include <stdio.h>
@@ -55,4 +57,23 @@ vector<Rect> Detector::detect_eyes(Mat image)
 	vector<Rect> eyes;
 	eyes_classifier.detectMultiScale(image, eyes, 1.1, 2, 0|CV_HAAR_SCALE_IMAGE, Size(30, 30));
 	return eyes;
+}
+
+vector<Mat> Detector::get_faces(Mat input_image, double scale_factor, int min_neighbors, int min_size_x, int min_size_y)
+{
+	vector<Rect> faces_rects = detect_faces(input_image, scale_factor, min_neighbors, min_size_x, min_size_y);
+	vector<Mat> faces;
+
+	for (unsigned int i = 0; i < faces_rects.size(); i++)
+	{
+		faces.push_back(input_image(faces_rects[i]));
+	}
+
+	return faces;
+}
+
+Mat Detector::get_face(Mat source, Mat last, double scale_factor, int min_neighbors, int min_size_x, int min_size_y)
+{
+	vector<Mat> faces = get_faces(source, scale_factor, min_neighbors, min_size_x, min_size_y);
+	return faces[0];
 }

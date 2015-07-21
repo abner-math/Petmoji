@@ -19,23 +19,13 @@ using namespace cv;
 #define FACE_DETECTION_MIN_SIZE_X 30
 #define FACE_DETECTION_MIN_SIZE_Y 30
 
-vector<Mat> face_detection(string input_image, double scale_factor, int min_neighbors, int min_size_x, int min_size_y)
+void check_arguments(int argc, char** argv)
 {
-	// Load Face cascade (.xml file)
-	Detector detector("conf/haarcascade_frontalface_alt2.xml",
-			"conf/haarcascade_righteye_2splits.xml",
-			"conf/haarcascade_lefteye_2splits.xml",
-			"conf/haarcascade_smile.xml",
-			"conf/haarcascade_eye.xml");
-	Mat image = imread(input_image, CV_LOAD_IMAGE_COLOR);
-	vector<Rect> faces_rects = detector.detect_faces(image, scale_factor, min_neighbors, min_size_x, min_size_y);
-	vector<Mat> faces;
-	for (unsigned int i = 0; i < faces_rects.size(); i++)
+	if (argc != 3)
 	{
-		faces.push_back(image(faces_rects[i]));
+		puts("Numero incorreto de argumentos");
+		exit(-1);
 	}
-
-	return faces;
 }
 
 vector<Mat> pre_process_faces(vector<Mat> faces, int smoothing_type, int kernel_width, int kernel_height)
@@ -65,20 +55,18 @@ void export_faces(vector<Mat> faces, char* original_face_image_filename)
 	}
 }
 
-void check_arguments(int argc, char** argv)
-{
-	if (argc != 3)
-	{
-		puts("Numero incorreto de argumentos");
-		exit(-1);
-	}
-}
-
 int main(int argc, char** argv)
 {
 	check_arguments(argc, argv);
-	vector<Mat> faces = face_detection(argv[1], FACE_DETECTION_SCALE_FACTOR, FACE_DETECTION_MIN_NEIGHBORS, FACE_DETECTION_MIN_SIZE_X, FACE_DETECTION_MIN_SIZE_Y);
+	Mat image = imread(argv[1], CV_LOAD_IMAGE_COLOR);
+
+	Detector detector("conf/haarcascade_frontalface_alt2.xml",
+				"conf/haarcascade_righteye_2splits.xml",
+				"conf/haarcascade_lefteye_2splits.xml",
+				"conf/haarcascade_smile.xml",
+				"conf/haarcascade_eye.xml");
+
+	vector<Mat> faces = detector.get_faces(image, FACE_DETECTION_SCALE_FACTOR, FACE_DETECTION_MIN_NEIGHBORS, FACE_DETECTION_MIN_SIZE_X, FACE_DETECTION_MIN_SIZE_Y);
 	vector<Mat> processed_faces = pre_process_faces(faces, NORMALIZED, SMOOTHING_KERNEL_WIDTH, SMOOTHING_KERNEL_HEIGHT);
 	export_faces(processed_faces, argv[2]);
 }
-

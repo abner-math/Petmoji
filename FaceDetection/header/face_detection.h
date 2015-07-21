@@ -17,6 +17,8 @@ class Detector
 	CascadeClassifier eyes_classifier;
 
 	public:
+	Mat get_face(Mat source, Mat last, double scale_factor, int min_neighbors, int min_size_x, int min_size_y);
+	vector<Mat> get_faces(Mat source, double scale_factor, int min_neighbors, int min_size_x, int min_size_y);
 	vector<Rect> detect_faces(Mat image, double scale_factor, int min_neighbors, int min_size_x, int min_size_y);
 	vector<Rect> detect_right_eye(Mat image);
 	vector<Rect> detect_left_eye(Mat image);
