@@ -39,6 +39,12 @@ vector<Mat> pre_process_faces(vector<Mat> faces, int smoothing_type, int kernel_
 	return faces;
 }
 
+Mat pre_process_face(Mat face, int smoothing_type, int kernel_width, int kernel_height)
+{
+	Mat equalized_image = equalize_histogram(face);
+	return smoothing(face, smoothing_type, kernel_width, kernel_height);
+}
+
 void export_faces(vector<Mat> faces, char* original_face_image_filename)
 {
 	if (faces.size() > 1)
@@ -55,6 +61,11 @@ void export_faces(vector<Mat> faces, char* original_face_image_filename)
 	}
 }
 
+void export_face(Mat face, char* original_face_image_filename)
+{
+	imwrite(original_face_image_filename, face);
+}
+
 int main(int argc, char** argv)
 {
 	check_arguments(argc, argv);
@@ -66,7 +77,7 @@ int main(int argc, char** argv)
 				"conf/haarcascade_smile.xml",
 				"conf/haarcascade_eye.xml");
 
-	vector<Mat> faces = detector.get_faces(image, FACE_DETECTION_SCALE_FACTOR, FACE_DETECTION_MIN_NEIGHBORS, FACE_DETECTION_MIN_SIZE_X, FACE_DETECTION_MIN_SIZE_Y);
-	vector<Mat> processed_faces = pre_process_faces(faces, NORMALIZED, SMOOTHING_KERNEL_WIDTH, SMOOTHING_KERNEL_HEIGHT);
-	export_faces(processed_faces, argv[2]);
+	Mat face = detector.get_face(image, image, FACE_DETECTION_SCALE_FACTOR, FACE_DETECTION_MIN_NEIGHBORS, FACE_DETECTION_MIN_SIZE_X, FACE_DETECTION_MIN_SIZE_Y);
+	Mat processed_face = pre_process_face(face, NORMALIZED, SMOOTHING_KERNEL_WIDTH, SMOOTHING_KERNEL_HEIGHT);
+	export_face(processed_face, argv[2]);
 }

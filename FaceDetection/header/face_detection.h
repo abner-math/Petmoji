@@ -16,6 +16,9 @@ class Detector
 	CascadeClassifier smile_classifier;
 	CascadeClassifier eyes_classifier;
 
+	bool has_eyes(Mat image);
+	Mat get_best_face_candidate(vector<Mat> faces_candidates);
+
 	public:
 	Mat get_face(Mat source, Mat last, double scale_factor, int min_neighbors, int min_size_x, int min_size_y);
 	vector<Mat> get_faces(Mat source, double scale_factor, int min_neighbors, int min_size_x, int min_size_y);

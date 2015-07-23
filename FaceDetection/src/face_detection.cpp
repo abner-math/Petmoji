@@ -72,8 +72,31 @@ vector<Mat> Detector::get_faces(Mat input_image, double scale_factor, int min_ne
 	return faces;
 }
 
+bool Detector::has_eyes(Mat image)
+{
+	return detect_eyes(image).size() > 0;
+}
+
+Mat Detector::get_best_face_candidate(vector<Mat> faces_candidates)
+{
+	assert(faces_candidates.size() > 0);
+
+	Mat best_candidate = faces_candidates[0];
+
+	for (unsigned int i = 0; i < faces_candidates.size(); i++)
+	{
+		if (has_eyes(faces_candidates[i]))
+		{
+			return faces_candidates[i];
+		}
+	}
+
+	return best_candidate;
+}
+
 Mat Detector::get_face(Mat source, Mat last, double scale_factor, int min_neighbors, int min_size_x, int min_size_y)
 {
 	vector<Mat> faces = get_faces(source, scale_factor, min_neighbors, min_size_x, min_size_y);
-	return faces[0];
+	Mat best_candidate = get_best_face_candidate(faces);
+	return best_candidate;
 }
