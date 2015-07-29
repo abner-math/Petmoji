@@ -4,6 +4,7 @@
 #include "face_detection.h"
 #include "histogram_equalization.h"
 #include "smoothing.h"
+#include "performance_test.h"
 
 #include <iostream>
 #include <stdio.h>
@@ -21,10 +22,33 @@ using namespace cv;
 
 void check_arguments(int argc, char** argv)
 {
-	if (argc != 3)
+	if (argc < 2)
 	{
 		puts("Numero incorreto de argumentos");
 		exit(-1);
+	}
+
+	string mode = argv[1];
+
+	if (!mode.compare("p"))
+	{
+		if (argc != 3)
+		{
+			puts("Numero incorreto de argumentos para o modo performance.");
+			exit(-1);
+		}
+	}
+	else if (!mode.compare("n"))
+	{
+		if (argc != 3)
+		{
+			puts("Numero incorreto de argumentos para o modo normal.");
+			exit(-1);
+		}
+	}
+	else
+	{
+		puts("Modo invalido");
 	}
 }
 
@@ -69,15 +93,25 @@ void export_face(Mat face, char* original_face_image_filename)
 int main(int argc, char** argv)
 {
 	check_arguments(argc, argv);
-	Mat image = imread(argv[1], CV_LOAD_IMAGE_COLOR);
 
-	Detector detector("conf/haarcascade_frontalface_alt2.xml",
-				"conf/haarcascade_righteye_2splits.xml",
-				"conf/haarcascade_lefteye_2splits.xml",
-				"conf/haarcascade_smile.xml",
-				"conf/haarcascade_eye.xml");
+	string mode = argv[1];
 
-	Mat face = detector.get_face(image, image, FACE_DETECTION_SCALE_FACTOR, FACE_DETECTION_MIN_NEIGHBORS, FACE_DETECTION_MIN_SIZE_X, FACE_DETECTION_MIN_SIZE_Y);
-	Mat processed_face = pre_process_face(face, NORMALIZED, SMOOTHING_KERNEL_WIDTH, SMOOTHING_KERNEL_HEIGHT);
-	export_face(processed_face, argv[2]);
+	if (!mode.compare("p"))
+	{
+		test_performance(argv[2], SMOOTHING_TYPE, SMOOTHING_KERNEL_WIDTH, SMOOTHING_KERNEL_HEIGHT, FACE_DETECTION_SCALE_FACTOR, FACE_DETECTION_MIN_NEIGHBORS, FACE_DETECTION_MIN_SIZE_X, FACE_DETECTION_MIN_SIZE_Y);
+	}
+	else if (!mode.compare("n"))
+	{
+		Mat image = imread(argv[2], CV_LOAD_IMAGE_COLOR);
+		Detector detector("conf/haarcascade_frontalface_alt2.xml",
+					"conf/haarcascade_righteye_2splits.xml",
+					"conf/haarcascade_lefteye_2splits.xml",
+					"conf/haarcascade_smile.xml",
+					"conf/haarcascade_eye.xml");
+
+		Mat face = detector.get_face(image, image, FACE_DETECTION_SCALE_FACTOR, FACE_DETECTION_MIN_NEIGHBORS, FACE_DETECTION_MIN_SIZE_X, FACE_DETECTION_MIN_SIZE_Y);
+		Mat processed_face = pre_process_face(face, NORMALIZED, SMOOTHING_KERNEL_WIDTH, SMOOTHING_KERNEL_HEIGHT);
+		export_face(processed_face, argv[2]);
+	}
+	return 0;
 }
