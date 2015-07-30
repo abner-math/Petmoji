@@ -18,9 +18,11 @@ class Detector
 
 	bool has_eyes(Mat image);
 	Mat get_best_face_candidate(vector<Mat> faces_candidates);
+	bool get_best_face_candidate(vector<Rect> faces_candidates, Mat image, Rect* best_candidate);
 
 	public:
 	Mat get_face(Mat source, Mat last, double scale_factor, int min_neighbors, int min_size_x, int min_size_y);
+	bool get_face_rect(Mat source, Mat last, double scale_factor, int min_neighbors, int min_size_x, int min_size_y, Rect* face);
 	vector<Mat> get_faces(Mat source, double scale_factor, int min_neighbors, int min_size_x, int min_size_y);
 	vector<Rect> detect_faces(Mat image, double scale_factor, int min_neighbors, int min_size_x, int min_size_y);
 	vector<Rect> detect_right_eye(Mat image);

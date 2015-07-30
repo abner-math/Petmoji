@@ -46,6 +46,14 @@ void check_arguments(int argc, char** argv)
 			exit(-1);
 		}
 	}
+	else if (!mode.compare("r"))
+	{
+		if (argc != 5)
+		{
+			puts("Numero incorreto de argumentos para o modo resultados.");
+			exit(-1);
+		}
+	}
 	else
 	{
 		puts("Modo invalido");
@@ -112,6 +120,11 @@ int main(int argc, char** argv)
 		Mat face = detector.get_face(image, image, FACE_DETECTION_SCALE_FACTOR, FACE_DETECTION_MIN_NEIGHBORS, FACE_DETECTION_MIN_SIZE_X, FACE_DETECTION_MIN_SIZE_Y);
 		Mat processed_face = pre_process_face(face, NORMALIZED, SMOOTHING_KERNEL_WIDTH, SMOOTHING_KERNEL_HEIGHT);
 		export_face(processed_face, argv[2]);
+	}
+	else if (!mode.compare("r"))
+	{
+		test_performance(argv[2], argv[3], SMOOTHING_TYPE, SMOOTHING_KERNEL_WIDTH, SMOOTHING_KERNEL_HEIGHT, FACE_DETECTION_SCALE_FACTOR, FACE_DETECTION_MIN_NEIGHBORS,
+									FACE_DETECTION_MIN_SIZE_X, FACE_DETECTION_MIN_SIZE_Y, atof(argv[4]));
 	}
 	return 0;
 }

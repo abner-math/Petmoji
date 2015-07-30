@@ -94,9 +94,33 @@ Mat Detector::get_best_face_candidate(vector<Mat> faces_candidates)
 	return best_candidate;
 }
 
+bool Detector::get_best_face_candidate(vector<Rect> faces_candidates, Mat image, Rect* best_candidate)
+{
+	for (unsigned int i = 0; i < faces_candidates.size(); i++)
+	{
+		if (has_eyes(image(faces_candidates[i])))
+		{
+			best_candidate->x = faces_candidates[i].x;
+			best_candidate->y = faces_candidates[i].y;
+			best_candidate->width = faces_candidates[i].width;
+			best_candidate->height = faces_candidates[i].height;
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
 Mat Detector::get_face(Mat source, Mat last, double scale_factor, int min_neighbors, int min_size_x, int min_size_y)
 {
 	vector<Mat> faces = get_faces(source, scale_factor, min_neighbors, min_size_x, min_size_y);
 	Mat best_candidate = get_best_face_candidate(faces);
 	return best_candidate;
+}
+
+bool Detector::get_face_rect(Mat source, Mat last, double scale_factor, int min_neighbors, int min_size_x, int min_size_y, Rect* face)
+{
+	vector<Rect> faces = detect_faces(source, scale_factor, min_neighbors, min_size_x, min_size_y);
+	return get_best_face_candidate(faces, source, face);
 }
