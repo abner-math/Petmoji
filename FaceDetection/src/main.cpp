@@ -24,7 +24,7 @@ void check_arguments(int argc, char** argv)
 {
 	if (argc < 2)
 	{
-		puts("Numero incorreto de argumentos");
+		puts("Numero incorreto de argumentos. Necessario informar um modo de funcionamento.");
 		exit(-1);
 	}
 
@@ -34,7 +34,7 @@ void check_arguments(int argc, char** argv)
 	{
 		if (argc != 3)
 		{
-			puts("Numero incorreto de argumentos para o modo performance.");
+			puts("Numero incorreto de argumentos para o modo performance. Necessario informar o caminho de um arquivo de video.");
 			exit(-1);
 		}
 	}
@@ -42,7 +42,7 @@ void check_arguments(int argc, char** argv)
 	{
 		if (argc != 3)
 		{
-			puts("Numero incorreto de argumentos para o modo normal.");
+			puts("Numero incorreto de argumentos para o modo normal. Necessario informar o caminho de uma imagem");
 			exit(-1);
 		}
 	}
@@ -51,6 +51,7 @@ void check_arguments(int argc, char** argv)
 		if (argc != 5)
 		{
 			puts("Numero incorreto de argumentos para o modo resultados.");
+			puts("Uso: <nome do programa> r <caminho da base de imagens> <caminho da base de pontos de imagens> <threshold>");
 			exit(-1);
 		}
 	}

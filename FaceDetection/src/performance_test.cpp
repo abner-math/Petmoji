@@ -13,6 +13,21 @@
 
 using namespace std;
 
+class ClassificationMetrics
+{
+	public:
+	double precision;
+	double recall;
+	double f_measure;
+
+	ClassificationMetrics(double precision, double recall, double f_measure)
+	{
+		this->precision = precision;
+		this->recall = recall;
+		this->f_measure = f_measure;
+	}
+};
+
 void detect_faces_in_video(VideoCapture video, int smoothing_type, int kernel_size_width, int kernel_size_height,
 							double scale_factor, int min_neighbors, int min_x, int min_y)
 {
@@ -59,6 +74,9 @@ void test_performance(string test_video_file, int smoothing_type, int kernel_siz
 	detect_faces_in_video(video, smoothing_type, kernel_size_width, kernel_size_height, scale_factor, min_neighbors, min_x, min_y);
 }
 
+/*
+ * Esta função lê os arquivos de pontos das imagens e coloca essas informações em um vetor de pontos
+ */
 vector<Point> get_image_points(char* correct_measures_directory, int image_index)
 {
 	char file_name[100];
@@ -86,19 +104,65 @@ vector<Point> get_image_points(char* correct_measures_directory, int image_index
 	return points;
 }
 
-bool evaluate_detection(vector<Point> image_points, Rect detected_face, double max_error)
+/*
+ * Esta função deriva a localização real da face na imagem a partir dos pontos pré-rotulados
+ */
+Rect get_correct_faces_from_points(vector<Point> image_points)
 {
-	Point nose = image_points[14];
-	Point center(detected_face.x + detected_face.width/2, detected_face.y + detected_face.height/2);
+	/*
+		4 = outer end of right eye brow
+		5 = inner end of right eye brow
+		6 = inner end of left eye brow
+		7 = outer end of left eye brow
+		8 = right temple
+		13 = left temple
+		18 = centre point on outer edge of lower lip
+		19 = tip of chin
+	 */
+	Point left_temple = image_points[13];
+	Point right_temple = image_points[8];
+	Point tip_of_chin = image_points[19];
+	Point inner_end_right_eye_brow = image_points[5];
+	Point inner_end_left_eye_brow = image_points[6];
+	Point center_point_lower_lip = image_points[18];
+	int y_eyebrow = min(inner_end_right_eye_brow.y, inner_end_left_eye_brow.y);
 
-	double error = sqrt(pow(nose.x - center.x, 2) + pow(nose.y - center.y, 2));
+	int correct_face_x = right_temple.x;
+	int correct_face_y = y_eyebrow;
+	int correct_face_width = left_temple.x - right_temple.x;
+	int correct_face_height = center_point_lower_lip.y - y_eyebrow;
+	Rect correct_face(correct_face_x, correct_face_y, correct_face_width, correct_face_height);
+	return correct_face;
+}
 
-	return error <= max_error;
+/*
+ * Esta função avalia a detecção de face comparando a face detectada com a face real e levando em conta
+ * um threshold. Retorna true se a detecção foi considerada correta, false caso contrário.
+ */
+bool evaluate_detection(vector<Point> image_points, Rect detected_face, double min_fmeasure)
+{
+	Rect correct_face = get_correct_faces_from_points(image_points);
+	int x_intersection(max(detected_face.x, correct_face.x));
+	int y_intersection(max(detected_face.y, correct_face.y));
+	int width_intersection = min(detected_face.x + detected_face.width, correct_face.x + correct_face.width) - max(detected_face.x, correct_face.x);
+	int height_intersection = min(detected_face.y + detected_face.height, correct_face.y + correct_face.height) - max(detected_face.y, correct_face.y);
+
+	Rect correct_detected_intersection2(x_intersection, y_intersection, width_intersection, height_intersection);
+	Rect correct_detected_intersection = correct_face & detected_face;
+
+	int correct_face_area = correct_face.area();
+	int detected_face_area = detected_face.area();
+	int intersection_area = correct_detected_intersection.area();
+
+	double precision = ((double)intersection_area)/detected_face_area;
+	double recall = ((double)intersection_area)/correct_face_area;
+	double fmeasure = 2*precision*recall/(precision + recall);
+	return fmeasure >= min_fmeasure;
 }
 
 void test_performance(char* input_images_directory, char* correct_measures_directory,
 								int smoothing_type, int kernel_size_width, int kernel_size_height,
-								double scale_factor, int min_neighbors, int min_x, int min_y, double max_error)
+								double scale_factor, int min_neighbors, int min_x, int min_y, double min_fmeasure)
 {
 	int num_images = 1521;
 	int detected_correctly = 0;
@@ -124,13 +188,16 @@ void test_performance(char* input_images_directory, char* correct_measures_direc
 			faces_detected++;
 			vector<Point> image_points = get_image_points(correct_measures_directory, image_index);
 
-			if (evaluate_detection(image_points, detected_face, max_error))
+			if (evaluate_detection(image_points, detected_face, min_fmeasure))
 			{
 				detected_correctly++;
 			}
 		}
 	}
 
+	printf("Numero total de imagens: %d\n", num_images);
 	printf("faces detectadas: %d\n", faces_detected);
-	printf("recuperação: %f\n", detected_correctly*1.0/num_images);
+	printf("faces detectadas corretamente: %d\n", detected_correctly);
+	printf("faces detectadas corretamente / faces detectadas: %f\n", ((double)detected_correctly)/faces_detected);
+	printf("recuperação (detectadas corretamente/numero de imagens): %f\n", ((double)detected_correctly)/num_images);
 }
