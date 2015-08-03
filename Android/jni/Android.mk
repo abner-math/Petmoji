@@ -5,7 +5,7 @@ include $(CLEAR_VARS)
 #OPENCV_CAMERA_MODULES:=off
 #OPENCV_INSTALL_MODULES:=off
 #OPENCV_LIB_TYPE:=SHARED
-include $(OPENCV_PACKAGE_DIR)/sdk/native/jni/OpenCV.mk
+include /home/abnermca/OpenCV-android-sdk/sdk/native/jni/OpenCV.mk
 
 LOCAL_SRC_FILES  := Petmoji.cpp
 LOCAL_C_INCLUDES += $(LOCAL_PATH)

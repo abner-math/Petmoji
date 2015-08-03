@@ -1,5 +1,9 @@
 package com.example.petmoji;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,11 +15,11 @@ import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
-import org.opencv.core.MatOfRect;
 import org.opencv.core.Rect;
-import org.opencv.core.Size;
+import org.opencv.core.Scalar;
 
 import android.app.Activity;
+import android.content.Context;
 import android.graphics.Point;
 import android.os.Bundle;
 import android.util.Log;
@@ -34,6 +38,7 @@ import android.widget.Spinner;
 public class MainActivity extends Activity implements CvCameraViewListener2 {
 
     public static final String TAG = "com.example.petmoji";
+    public static final int S_FRAME_RATE = 10;
     
 	private ImageView mBackground;
 	private ImageView mImage;
@@ -42,6 +47,14 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
 	private CameraBridgeViewBase mOpenCvCameraView;
 	private Mat mGray;
 	private Mat mRgba;
+	private long mCascadeClassifier;
+	private Rect mFaceTrack;
+	private int mCount;
+	
+	private native long loadCascadeClassifier(String eyeFile, String frontalFace,
+		String leftEyeFile, String rightEyeFile, String smileFile);
+	 
+	private native int[] getFace(long inputImageAddr, long cascadeClassifierAddr);
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -108,7 +121,13 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
 
 			@Override
 			public void onClick(View v) {
-				mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
+				if (mOpenCvCameraView.getVisibility() == SurfaceView.GONE) {
+					mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
+					btnActivateCamera.setText("Desactivate camera");
+				} else {
+					mOpenCvCameraView.setVisibility(SurfaceView.GONE);
+					btnActivateCamera.setText("Activate camera");
+				}
 			}
 		});
 	}
@@ -143,6 +162,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
                 {
                 	System.loadLibrary("Petmoji");
                     Log.i(TAG, "OpenCV loaded successfully");
+                    loadCascade();
                     mOpenCvCameraView.enableView();
                 } break;
                 default:
@@ -153,19 +173,67 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
         }
     };
 
+    @Override
     public void onCameraViewStarted(int width, int height) {
         mGray = new Mat();
         mRgba = new Mat();
     }
 
+    @Override
     public void onCameraViewStopped() {
         mGray.release();
         mRgba.release();
     }
 
+    private void loadCascade()
+    {
+    	File cascadeEye = readCascadeXML("haarcascade_eye.xml");
+        File cascadeFrontalFace = readCascadeXML("haarcascade_frontalface_alt2.xml");
+        File cascadeLeftEye = readCascadeXML("haarcascade_lefteye_2splits.xml");
+        File cascadeRightEye = readCascadeXML("haarcascade_righteye_2splits.xml");
+        File cascadeSmile = readCascadeXML("haarcascade_smile.xml");
+		mCascadeClassifier = loadCascadeClassifier(cascadeEye.getAbsolutePath(),
+        		cascadeFrontalFace.getAbsolutePath(), cascadeLeftEye.getAbsolutePath(),
+        		cascadeRightEye.getAbsolutePath(), cascadeSmile.getAbsolutePath());
+    }
+    
+    private File readCascadeXML(String file) {
+    	File cascadeFile = null;
+    	final InputStream is;
+    	FileOutputStream os;
+    	try {
+    	    is = getResources().getAssets().open(file);
+    	    File cascadeDir = getDir("cascade", Context.MODE_PRIVATE);
+    	    cascadeFile = new File(cascadeDir, "face_frontal.xml");
+    	    
+    	    os = new FileOutputStream(cascadeFile);
+    	            
+    	    byte[] buffer = new byte[4096];
+    	    int bytesRead;
+    	    while ((bytesRead = is.read(buffer)) != -1) {
+    	        os.write(buffer, 0, bytesRead);
+    	    }
+
+    	    is.close();
+    	    os.close();
+    	} catch (IOException e) {
+    	    Log.i(TAG, "face cascade not found");
+    	}
+    	return cascadeFile;
+    }
+    
+    @Override
     public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
         mRgba = inputFrame.rgba();
         mGray = inputFrame.gray();
+        if (this.mCount % S_FRAME_RATE == 0) {
+        	
+            int[] faceRect = getFace(mGray.getNativeObjAddr(), mCascadeClassifier);
+            mFaceTrack = new Rect(faceRect[0], faceRect[1], faceRect[2], faceRect[3]);
+            mAnimation.moveToCoordinate(new Coordinate(mFaceTrack.x + mFaceTrack.width / 2, mFaceTrack.y + mFaceTrack.height / 2));
+        }
+        ++this.mCount;
+        Core.rectangle(mRgba, mFaceTrack.br(), mFaceTrack.tl(), new Scalar(255, 0, 0));
         return mRgba;
     }
 

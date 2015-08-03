@@ -26,16 +26,10 @@
 
     <org.opencv.android.JavaCameraView
         android:id="@+id/camera"
-        android:layout_width="fill_parent"
-        android:layout_height="fill_parent"
+        android:layout_width="200dp"
+        android:layout_height="200dp"
         android:visibility="gone" />
     
-    <ImageView
-        android:id="@+id/cameraPreview"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
-        android:layout_gravity="bottom|right" />
-        
     <Button
         android:id="@+id/activatePreview"
         android:layout_width="wrap_content"
