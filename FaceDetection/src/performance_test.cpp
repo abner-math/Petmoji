@@ -4,6 +4,7 @@
 #include "face_detection.h"
 #include "histogram_equalization.h"
 #include "smoothing.h"
+#include "utils.h"
 
 #include <sstream>
 #include <iostream>
@@ -12,21 +13,6 @@
 #include <math.h>
 
 using namespace std;
-
-class ClassificationMetrics
-{
-	public:
-	double precision;
-	double recall;
-	double f_measure;
-
-	ClassificationMetrics(double precision, double recall, double f_measure)
-	{
-		this->precision = precision;
-		this->recall = recall;
-		this->f_measure = f_measure;
-	}
-};
 
 void detect_faces_in_video(VideoCapture video, int smoothing_type, int kernel_size_width, int kernel_size_height,
 							double scale_factor, int min_neighbors, int min_x, int min_y)
@@ -75,36 +61,6 @@ void test_performance(string test_video_file, int smoothing_type, int kernel_siz
 }
 
 /*
- * Esta função lê os arquivos de pontos das imagens e coloca essas informações em um vetor de pontos
- */
-vector<Point> get_image_points(char* correct_measures_directory, int image_index)
-{
-	char file_name[100];
-	char* line;
-	size_t k = 0;
-
-	sprintf(file_name, "%s/bioid_%04d.pts", correct_measures_directory, image_index);
-	FILE *f = fopen(file_name, "r");
-
-	getline(&line, &k, f);
-	getline(&line, &k, f);
-	getline(&line, &k, f);
-
-	vector<Point> points;
-	for (int i = 0; i < 20; i++)
-	{
-		int integer_x = 0, integer_y = 0, decimal_x = 0, decimal_y = 0;
-		getline(&line, &k, f);
-		sscanf(line, "%d.%d %d.%d", &integer_x, &decimal_x, &integer_y, &decimal_y);
-		Point new_point(integer_x, integer_y);
-		points.push_back(new_point);
-	}
-
-	fclose(f);
-	return points;
-}
-
-/*
  * Esta função deriva a localização real da face na imagem a partir dos pontos pré-rotulados
  */
 Rect get_correct_faces_from_points(vector<Point> image_points)
@@ -139,7 +95,7 @@ Rect get_correct_faces_from_points(vector<Point> image_points)
  * Esta função avalia a detecção de face comparando a face detectada com a face real e levando em conta
  * um threshold. Retorna true se a detecção foi considerada correta, false caso contrário.
  */
-bool evaluate_detection(vector<Point> image_points, Rect detected_face, double min_fmeasure)
+ClassificationMetrics evaluate_detection(vector<Point> image_points, Rect detected_face)
 {
 	Rect correct_face = get_correct_faces_from_points(image_points);
 	int x_intersection(max(detected_face.x, correct_face.x));
@@ -157,7 +113,7 @@ bool evaluate_detection(vector<Point> image_points, Rect detected_face, double m
 	double precision = ((double)intersection_area)/detected_face_area;
 	double recall = ((double)intersection_area)/correct_face_area;
 	double fmeasure = 2*precision*recall/(precision + recall);
-	return fmeasure >= min_fmeasure;
+	return ClassificationMetrics(precision, recall, fmeasure);
 }
 
 void test_performance(char* input_images_directory, char* correct_measures_directory,
@@ -172,6 +128,9 @@ void test_performance(char* input_images_directory, char* correct_measures_direc
 								"conf/haarcascade_lefteye_2splits.xml",
 								"conf/haarcascade_smile.xml",
 								"conf/haarcascade_eye.xml");
+	double cumulative_precision = 0;
+	double cumulative_recall = 0;
+	double cumulative_fmeasure = 0;
 
 	for (int image_index = 0; image_index < num_images; image_index++)
 	{
@@ -183,21 +142,34 @@ void test_performance(char* input_images_directory, char* correct_measures_direc
 		Rect detected_face;
 		bool any_face = detector.get_face_rect(image, image, scale_factor, min_neighbors, min_x, min_y, &detected_face);
 
+
 		if (any_face)
 		{
 			faces_detected++;
 			vector<Point> image_points = get_image_points(correct_measures_directory, image_index);
+			ClassificationMetrics metrics = evaluate_detection(image_points, detected_face);
 
-			if (evaluate_detection(image_points, detected_face, min_fmeasure))
+			cumulative_precision += metrics.precision;
+			cumulative_recall += metrics.recall;
+			cumulative_fmeasure += metrics.f_measure;
+
+			if (metrics.f_measure >= min_fmeasure)
 			{
 				detected_correctly++;
 			}
 		}
 	}
 
+	double mean_precision = faces_detected == 0 ? 0 : cumulative_precision/faces_detected;
+	double mean_recall = faces_detected == 0 ? 0 : cumulative_recall/faces_detected;
+	double mean_fmeasure = faces_detected == 0 ? 0 : cumulative_fmeasure/faces_detected;
+
 	printf("Numero total de imagens: %d\n", num_images);
 	printf("faces detectadas: %d\n", faces_detected);
 	printf("faces detectadas corretamente: %d\n", detected_correctly);
 	printf("faces detectadas corretamente / faces detectadas: %f\n", ((double)detected_correctly)/faces_detected);
 	printf("recuperação (detectadas corretamente/numero de imagens): %f\n", ((double)detected_correctly)/num_images);
+	printf("precisão média: %f\n", mean_precision);
+	printf("recuperação média: %f\n", mean_recall);
+	printf("medida f média: %f\n", mean_fmeasure);
 }

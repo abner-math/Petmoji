@@ -5,6 +5,7 @@
 #include "histogram_equalization.h"
 #include "smoothing.h"
 #include "performance_test.h"
+#include "utils.h"
 
 #include <iostream>
 #include <stdio.h>
@@ -53,6 +54,14 @@ void check_arguments(int argc, char** argv)
 			puts("Numero incorreto de argumentos para o modo resultados.");
 			puts("Uso: <nome do programa> r <caminho da base de imagens> <caminho da base de pontos de imagens> <threshold>");
 			exit(-1);
+		}
+	}
+	else if (!mode.compare("v"))
+	{
+		if (argc != 4)
+		{
+			puts("Numero incorreto de argumentos para o modo visualização.");
+			puts("Uso: <nome do programa> v <caminho da base de imagens> <caminho da base de pontos de imagens>");
 		}
 	}
 	else
@@ -126,6 +135,10 @@ int main(int argc, char** argv)
 	{
 		test_performance(argv[2], argv[3], SMOOTHING_TYPE, SMOOTHING_KERNEL_WIDTH, SMOOTHING_KERNEL_HEIGHT, FACE_DETECTION_SCALE_FACTOR, FACE_DETECTION_MIN_NEIGHBORS,
 									FACE_DETECTION_MIN_SIZE_X, FACE_DETECTION_MIN_SIZE_Y, atof(argv[4]));
+	}
+	else if (!mode.compare("v"))
+	{
+		visualize_images(argv[2], argv[3]);
 	}
 	return 0;
 }
