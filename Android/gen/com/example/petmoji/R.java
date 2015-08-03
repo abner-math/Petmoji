@@ -71,12 +71,11 @@ containing a value of this type.
         public static final int pet0_upset_left3=0x7f02001f;
     }
     public static final class id {
-        public static final int activatePreview=0x7f040008;
+        public static final int activatePreview=0x7f040007;
         public static final int any=0x7f040000;
         public static final int back=0x7f040001;
         public static final int background=0x7f040003;
         public static final int camera=0x7f040006;
-        public static final int cameraPreview=0x7f040007;
         public static final int character=0x7f040004;
         public static final int front=0x7f040002;
         public static final int setMood=0x7f040005;
