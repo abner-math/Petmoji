@@ -5,6 +5,7 @@ import java.util.List;
 
 import android.app.Activity;
 import android.widget.ImageView;
+import android.widget.TextView;
 
 public class Animation implements Runnable {
 
@@ -12,13 +13,15 @@ public class Animation implements Runnable {
 	private static final long S_MOVEMENT_SPEED = 100L; // miliseconds
 	
 	private Sprite mSprite;
+	private TextView mLabel;
 	private List<Coordinate> mMovementQueue;
 	private Thread mThread;
 	
-	public Animation(Activity context, ImageView image, PetType type) {
+	public Animation(Activity context, ImageView image, TextView label, PetType type) {
 		setSprite(new Sprite(context, image, type));
 		this.mMovementQueue = new ArrayList<Coordinate>();
 		this.mThread = new Thread(this);
+		this.mLabel = label;
 	}
 	
 	public Sprite getSprite() { 
@@ -80,6 +83,14 @@ public class Animation implements Runnable {
 				canMove = false;
 			}
 		}
+		mSprite.getContext().runOnUiThread(new Runnable() {
+			
+			@Override
+			public void run() {
+				mLabel.setX(current.getX());
+				mLabel.setY(current.getY() - 100);
+			}
+		});
 		mSprite.setPosition(current);
 		return canMove;
 	}

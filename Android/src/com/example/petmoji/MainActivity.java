@@ -35,10 +35,14 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Spinner;
+import android.widget.TextView;
 
 public class MainActivity extends Activity implements CvCameraViewListener2 {
 
     public static final String TAG = "com.example.petmoji";
+    public static final int S_SADDNESS = 0;
+    public static final int S_HAPPINESS = 1;
+    public static final int S_ANGER = 2;
     public static final int S_FRAME_RATE = 5;
 	public static final float S_RELATIVE_FACE_SIZE = 0.2f;
 	
@@ -47,6 +51,8 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
 	private Animation mAnimation;
 	private View mUserView;
 	private Spinner mSetMoodSpinner;
+	private TextView mDeveloperMood;
+	private TextView mMoodLabel;
 	 
 	private CameraBridgeViewBase mOpenCvCameraView;
 	private CascadeClassifier mCascadeClassifier;
@@ -59,7 +65,15 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
 	private double mFaceDetectorScaleFactor;
 	private int mAbsoluteFaceSize;
 	private int mFrameCount;
+	private long mFaceRecognizer;
+	private int mCurrentMood;
 	
+	private native int predict(long inputImageAddr, long faceRecognizerModelAddr);
+	
+	private native long createFaceRecognizer();
+	
+	private native void loadFaceRecognizer(long faceRecognizerAddr, String modelFile);
+
 	private native long loadCascadeClassifier(String eyeFile, String frontalFace,
 		String leftEyeFile, String rightEyeFile, String smileFile);
 	 
@@ -71,6 +85,8 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 		setContentView(R.layout.activity_main);
          
+		this.mMoodLabel = (TextView) findViewById(R.id.moodLabel);
+		this.mDeveloperMood = (TextView) findViewById(R.id.developerMood);
 		this.mCameraNeighbors = (Spinner) findViewById(R.id.cameraNeighbors);
 		this.mCameraScaleFactor = (Spinner) findViewById(R.id.cameraScaleFactor);
 		this.mUserView = findViewById(R.id.userView);
@@ -92,7 +108,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
 		display.getSize(size);
 		this.mImage.setX(size.x / 2 - this.mImage.getWidth() / 2);
 		this.mImage.setY(size.y / 2 - this.mImage.getHeight() / 2);
-		this.mAnimation = new Animation(this, mImage, PetType.PET0);
+		this.mAnimation = new Animation(this, mImage, mMoodLabel, PetType.PET0);
 		this.mAnimation.start();
 		this.mBackground.setOnTouchListener(new View.OnTouchListener() {
 			
@@ -225,44 +241,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
         OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_2_4_6, MainActivity.this, mLoaderCallback);
     }
 
-	private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
-        @Override
-        public void onManagerConnected(int status) {
-            switch (status) {
-                case LoaderCallbackInterface.SUCCESS:
-                {
-                	System.loadLibrary("Petmoji");
-                    Log.i(TAG, "OpenCV loaded successfully");
-                    loadCascade();
-                    mOpenCvCameraView.enableView();
-                } break;
-                default:
-                {
-                    super.onManagerConnected(status);
-                } break;
-            }
-        }
-    };
-
-    @Override
-    public void onCameraViewStarted(int width, int height) {
-        mGray = new Mat();
-        mRgba = new Mat();
-    }
-
-    @Override
-    public void onCameraViewStopped() {
-        mGray.release();
-        mRgba.release();
-    }
-
-    private void loadCascade()
-    {
-    	File cascadeFile = readCascadeXML("lbpcascade_frontalface.xml");
-		mCascadeClassifier = new CascadeClassifier(cascadeFile.getAbsolutePath());
-    }
-    
-    private File readCascadeXML(String file) {
+    private File loadAssetFile(String file) {
     	File cascadeFile = null;
     	final InputStream is;
     	FileOutputStream os;
@@ -286,10 +265,88 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
     	}
     	return cascadeFile;
     }
+
+    private void loadCascadeClassifier() {
+    	File cascadeFile = loadAssetFile("lbpcascade_frontalface.xml");
+		mCascadeClassifier = new CascadeClassifier(cascadeFile.getAbsolutePath());
+    }
+        
+    private void loadFaceRecognizer() {
+    	final File modelFile = loadAssetFile("cv_lbp_model_1_4_4_4.yaml");
+    	mFaceRecognizer = createFaceRecognizer();
+    	loadFaceRecognizer(mFaceRecognizer, modelFile.getAbsolutePath());
+    	System.out.println("Face recognizer loaded");
+    }
     
+	private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
+        @Override
+        public void onManagerConnected(int status) {
+            switch (status) {
+                case LoaderCallbackInterface.SUCCESS:
+                {
+                	System.loadLibrary("Petmoji");
+                    Log.i(TAG, "OpenCV loaded successfully");
+                    loadCascadeClassifier();
+                    loadFaceRecognizer();
+                    mOpenCvCameraView.enableView();
+                } break;
+                default:
+                {
+                    super.onManagerConnected(status);
+                } break;
+            }
+        }
+    };
+
+    @Override
+    public void onCameraViewStarted(int width, int height) {
+        mGray = new Mat();
+        mRgba = new Mat();
+    }
+
+    @Override
+    public void onCameraViewStopped() {
+        mGray.release();
+        mRgba.release();
+    }
+
     private void updateAnimation() {
     	mAnimation.moveToCoordinate(new Coordinate(mFaceTrack.x + mFaceTrack.width / 2, 
     			mFaceTrack.y + mFaceTrack.height / 2));
+    	switch (mCurrentMood) {
+    	case 0:
+    		runOnUiThread(new Runnable() {
+				
+				@Override
+				public void run() {
+					mDeveloperMood.setText("Mood: SAD");
+					mMoodLabel.setText("Estou me sentindo triste...");
+				}
+			});
+    		mAnimation.setMood(Mood.SAD);
+    		break;
+    	case 1:
+    		runOnUiThread(new Runnable() {
+				
+				@Override
+				public void run() {
+					mMoodLabel.setText("Estou alegre!");
+					mDeveloperMood.setText("Mood: HAPPY");
+				}
+			});
+    		mAnimation.setMood(Mood.HAPPY);
+    		break;
+    	case 2: 
+    		runOnUiThread(new Runnable() {
+				
+				@Override 
+				public void run() {
+					mMoodLabel.setText("Estou chateado...");
+					mDeveloperMood.setText("Mood: UPSET");
+				}
+			});
+    		mAnimation.setMood(Mood.UPSET);
+    	}
     }
     
     @Override
@@ -312,6 +369,8 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
         	Rect[] rects = faces.toArray();
         	if (rects.length > 0) {
         		mFaceTrack = faces.toArray()[0];
+        		mCurrentMood = predict(mGray.getNativeObjAddr(), mFaceRecognizer);
+        		System.out.println("Mood: " + mCurrentMood);
         		updateAnimation();
         	} else {
         		mFaceTrack = null;

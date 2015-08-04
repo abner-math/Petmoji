@@ -73,15 +73,17 @@ containing a value of this type.
     public static final class id {
         public static final int any=0x7f040000;
         public static final int back=0x7f040001;
-        public static final int background=0x7f040008;
+        public static final int background=0x7f040009;
         public static final int camera=0x7f040003;
         public static final int cameraNeighbors=0x7f040005;
         public static final int cameraScaleFactor=0x7f040006;
-        public static final int character=0x7f040009;
-        public static final int developerMode=0x7f04000a;
+        public static final int character=0x7f04000a;
+        public static final int developerMode=0x7f04000c;
+        public static final int developerMood=0x7f040007;
         public static final int front=0x7f040002;
+        public static final int moodLabel=0x7f04000b;
         public static final int setMood=0x7f040004;
-        public static final int userView=0x7f040007;
+        public static final int userView=0x7f040008;
     }
     public static final class layout {
         public static final int activity_main=0x7f030000;

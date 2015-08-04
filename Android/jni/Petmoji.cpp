@@ -1,11 +1,12 @@
 #include <jni.h>
 
+#include <iostream>
+#include <stdio.h>
+
 #include "opencv2/objdetect/objdetect.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
-
-#include <iostream>
-#include <stdio.h>
+#include "opencv2/contrib/contrib.hpp"
 
 #define SMOOTHING_KERNEL_WIDTH 11
 #define SMOOTHING_KERNEL_HEIGHT 11
@@ -144,7 +145,69 @@ private:
 
 };
 
+class ClassifiesFacialExpression {
+public:
+	ClassifiesFacialExpression(Mat img, int resolution)
+	{
+		this->img = img;
+		this->resolution = resolution;
+	}
+
+	ClassifiesFacialExpression(Mat img) : resolution(96)
+	{
+
+	}
+
+	static FaceRecognizer* loadModel(string pathModel)
+	{
+		FaceRecognizer* model = createLBPHFaceRecognizer(2,8,8,8);
+		model->load(pathModel);
+		return model;
+	}
+
+	int getClassLabelImage(Mat img, Ptr<FaceRecognizer> model)
+	{
+		/*
+		 * Chamar função de Armstrong para pre processamento
+		 * A imagem deve está na escala de cinza,
+		 * Equalizada: equalizeHist(img, img) e
+		 * Redimensionada para a resolução passada no contrutor, de acordo com o modelo utilizado
+		 */
+		resize(img, img, Size(this->resolution,this->resolution));
+		return model->predict(img);
+	}
+
+private:
+	Mat img;
+	int resolution;
+
+};
+
 extern "C" {
+
+	JNIEXPORT jint JNICALL Java_com_example_petmoji_MainActivity_predict(JNIEnv* env, jobject thiz,
+		jlong inputImageAddr, jlong faceRecognizerModelAddr)
+	{
+		Mat* img = (Mat*) inputImageAddr;
+		FaceRecognizer* model = (FaceRecognizer*) faceRecognizerModelAddr;
+		return (jint)model->predict(*img);
+	}
+
+	JNIEXPORT jlong JNICALL Java_com_example_petmoji_MainActivity_createFaceRecognizer(JNIEnv* env, jobject thiz)
+	{
+		Ptr<FaceRecognizer> model = cv::createLBPHFaceRecognizer(2,8,8,8);
+		model.addref();
+		return (jlong)model.obj;
+	}
+
+	JNIEXPORT void JNICALL Java_com_example_petmoji_MainActivity_loadFaceRecognizer(JNIEnv* env, jobject thiz,
+		jlong faceRecognizerAddr, jstring modelFile)
+	{
+		string stdModelFile(env->GetStringUTFChars(modelFile, NULL));
+		FaceRecognizer* model = (FaceRecognizer*) faceRecognizerAddr;
+		model->load(stdModelFile);
+	}
+
 	JNIEXPORT jlong JNICALL Java_com_example_petmoji_MainActivity_loadCascadeClassifier(JNIEnv * env, jobject thiz,
 			jstring eyeFile, jstring frontalFaceFile, jstring leftEyeFile,
 			jstring rightEyeFile, jstring smileFile)
