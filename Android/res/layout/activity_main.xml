@@ -4,37 +4,60 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context="${relativePackage}.${activityClass}" >
-
-    <ImageView 
-        android:id="@+id/background"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:src="@drawable/background"
-        android:scaleType="fitXY" />
-    
-    <ImageView
-        android:id="@+id/character"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
-        android:src="@drawable/pet0_neutral_left1"
-        android:clickable="true" />
-    
-    <Spinner 
-        android:id="@+id/setMood"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
-
+ 
     <org.opencv.android.JavaCameraView
         android:id="@+id/camera"
         android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+    
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:visibility="gone" />
+        android:orientation="vertical" >
+  
+         <Spinner 
+	        android:id="@+id/setMood"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content" />
+        
+         <Spinner 
+	        android:id="@+id/cameraNeighbors"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content" />
+        
+          <Spinner 
+	        android:id="@+id/cameraScaleFactor"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content" />
+	           
+    </LinearLayout>
+   
+    <FrameLayout
+        android:id="@+id/userView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" >
+        
+        <ImageView 
+	        android:id="@+id/background"
+	        android:layout_width="match_parent"
+	        android:layout_height="match_parent"
+	        android:src="@drawable/background"
+	        android:scaleType="fitXY" />
+	    
+	    <ImageView
+	        android:id="@+id/character"
+	        android:layout_width="100dp"
+	        android:layout_height="100dp"
+	        android:src="@drawable/pet0_neutral_left1"
+	        android:clickable="true" />
+	    
+    </FrameLayout>
     
     <Button
-        android:id="@+id/activatePreview"
+        android:id="@+id/developerMode"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="top|right"
-        android:text="Activate camera" />
+        android:text="Developer mode" />
     
 </FrameLayout>

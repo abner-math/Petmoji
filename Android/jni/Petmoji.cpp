@@ -10,10 +10,11 @@
 #define SMOOTHING_KERNEL_WIDTH 11
 #define SMOOTHING_KERNEL_HEIGHT 11
 #define SMOOTHING_TYPE NORMALIZED
-#define FACE_DETECTION_SCALE_FACTOR 1.1
-#define FACE_DETECTION_MIN_NEIGHBORS 2
-#define FACE_DETECTION_MIN_SIZE_X 30
-#define FACE_DETECTION_MIN_SIZE_Y 30
+#define FACE_DETECTION_SCALE_FACTOR 2.0
+#define FACE_DETECTION_MIN_NEIGHBORS 0
+#define FACE_DETECTION_MIN_SIZE_X 20
+#define FACE_DETECTION_MIN_SIZE_Y 20
+#define IMAGE_SCALE 5
 
 using namespace std;
 using namespace cv;
@@ -110,7 +111,7 @@ private:
 	int get_best_face_candidate(vector<Mat> faces_candidates)
 	{
 		assert(faces_candidates.size() > 0);
-
+		/*
 		Mat best_candidate = faces_candidates[0];
 
 		for (unsigned int i = 0; i < faces_candidates.size(); i++)
@@ -120,7 +121,7 @@ private:
 				return i;
 			}
 		}
-
+		*/
 		return 0;
 	}
 
@@ -163,13 +164,15 @@ extern "C" {
 		Mat* inputImage = (Mat*) inputImageAddr;
 		Detector* detector = (Detector*) cascadeClassifierAddr;
 
-		Rect r = detector->get_face(*inputImage, *inputImage, FACE_DETECTION_SCALE_FACTOR, FACE_DETECTION_MIN_NEIGHBORS, FACE_DETECTION_MIN_SIZE_X, FACE_DETECTION_MIN_SIZE_Y);
+		Mat resizedImage;
+		resize(*inputImage, resizedImage, inputImage->size(), 1 / IMAGE_SCALE, 1 / IMAGE_SCALE, INTER_LINEAR);
+		Rect r = detector->get_face(resizedImage, resizedImage, FACE_DETECTION_SCALE_FACTOR, FACE_DETECTION_MIN_NEIGHBORS, FACE_DETECTION_MIN_SIZE_X, FACE_DETECTION_MIN_SIZE_Y);
 		jintArray result = env->NewIntArray(4);
 		jint fill[4];
-		fill[0] = r.br().x;
-		fill[1] = r.br().y;
-		fill[2] = r.tl().x;
-		fill[3] = r.tl().y;
+		fill[0] = r.tl().x;
+		fill[1] = r.tl().y;
+		fill[2] = r.br().x;
+		fill[3] = r.br().y;
 		env->SetIntArrayRegion(result, 0, 4, fill);
 		return result;
 	}

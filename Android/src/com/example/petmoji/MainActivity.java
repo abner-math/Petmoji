@@ -15,17 +15,18 @@ import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfRect;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
+import org.opencv.core.Size;
+import org.opencv.objdetect.CascadeClassifier;
 
 import android.app.Activity;
 import android.content.Context;
-import android.graphics.Point;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Display;
 import android.view.MotionEvent;
-import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.AdapterView;
@@ -38,34 +39,56 @@ import android.widget.Spinner;
 public class MainActivity extends Activity implements CvCameraViewListener2 {
 
     public static final String TAG = "com.example.petmoji";
-    public static final int S_FRAME_RATE = 10;
-    
+    public static final int S_FRAME_RATE = 5;
+	public static final float S_RELATIVE_FACE_SIZE = 0.2f;
+	
 	private ImageView mBackground;
 	private ImageView mImage;
 	private Animation mAnimation;
-	private Spinner mSpinner;
+	private View mUserView;
+	private Spinner mSetMoodSpinner;
+	 
 	private CameraBridgeViewBase mOpenCvCameraView;
+	private CascadeClassifier mCascadeClassifier;
 	private Mat mGray;
 	private Mat mRgba;
-	private long mCascadeClassifier;
 	private Rect mFaceTrack;
-	private int mCount;
+	private Spinner mCameraNeighbors;
+	private Spinner mCameraScaleFactor;
+	private int mFaceDetectorNeighbors; 
+	private double mFaceDetectorScaleFactor;
+	private int mAbsoluteFaceSize;
+	private int mFrameCount;
 	
 	private native long loadCascadeClassifier(String eyeFile, String frontalFace,
 		String leftEyeFile, String rightEyeFile, String smileFile);
 	 
 	private native int[] getFace(long inputImageAddr, long cascadeClassifierAddr);
-	
+	 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 		setContentView(R.layout.activity_main);
-        
+         
+		this.mCameraNeighbors = (Spinner) findViewById(R.id.cameraNeighbors);
+		this.mCameraScaleFactor = (Spinner) findViewById(R.id.cameraScaleFactor);
+		this.mUserView = findViewById(R.id.userView);
 		this.mBackground = (ImageView) findViewById(R.id.background);
 		this.mImage = (ImageView) findViewById(R.id.character);
+		this.mSetMoodSpinner = (Spinner) findViewById(R.id.setMood);
+		this.mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.camera);
+        this.mOpenCvCameraView.setCvCameraViewListener(MainActivity.this);
+        
+        initializeAnimation();
+		setCameraProperties();
+		switchDisplayMode();
+		setMood();
+	}
+
+	private void initializeAnimation() {
 		Display display = getWindowManager().getDefaultDisplay();
-		Point size = new Point();
+		android.graphics.Point size = new android.graphics.Point();
 		display.getSize(size);
 		this.mImage.setX(size.x / 2 - this.mImage.getWidth() / 2);
 		this.mImage.setY(size.y / 2 - this.mImage.getHeight() / 2);
@@ -79,15 +102,17 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
 				return true;
 			}
 		});
-		this.mSpinner = (Spinner) findViewById(R.id.setMood);
+	}
+	
+	private void setMood() {
 		List<String> moods = new ArrayList<String>();
 		moods.add("Neutral");
 		moods.add("Happy");
 		moods.add("Sad");
 		moods.add("Upset");
 		ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, moods);
-		this.mSpinner.setAdapter(adapter);
-		this.mSpinner.setOnItemSelectedListener(new OnItemSelectedListener() {
+		this.mSetMoodSpinner.setAdapter(adapter);
+		this.mSetMoodSpinner.setOnItemSelectedListener(new OnItemSelectedListener() {
 
 			@Override
 			public void onItemSelected(AdapterView<?> parent, View view,
@@ -114,24 +139,70 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
 				
 			}
 		});
-		mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.camera);
-        mOpenCvCameraView.setCvCameraViewListener(MainActivity.this);
-		final Button btnActivateCamera = (Button) findViewById(R.id.activatePreview);
+	}
+	
+	private void switchDisplayMode() {
+		final Button btnActivateCamera = (Button) findViewById(R.id.developerMode);
 		btnActivateCamera.setOnClickListener(new View.OnClickListener() {
 
 			@Override
 			public void onClick(View v) {
-				if (mOpenCvCameraView.getVisibility() == SurfaceView.GONE) {
-					mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
-					btnActivateCamera.setText("Desactivate camera");
+				if (mUserView.getVisibility() == View.GONE) {
+					mUserView.setVisibility(View.VISIBLE);
+					btnActivateCamera.setText("Developer mode");
 				} else {
-					mOpenCvCameraView.setVisibility(SurfaceView.GONE);
-					btnActivateCamera.setText("Activate camera");
+					mUserView.setVisibility(View.GONE);
+					btnActivateCamera.setText("User mode");
 				}
 			}
 		});
-	}
+	} 
+	
+	private void setCameraProperties() {
+		this.mFaceDetectorNeighbors = 4;
+		this.mFaceDetectorScaleFactor = 1.5;
+		List<String> neighbors = new ArrayList<String>();
+		for (int i = 0; i < 10; i++) {
+			neighbors.add(String.valueOf(i));
+		}
+		ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, neighbors);
+		mCameraNeighbors.setAdapter(adapter);
+		mCameraNeighbors.setOnItemSelectedListener(new OnItemSelectedListener() {
+ 
+			@Override
+			public void onItemSelected(AdapterView<?> arg0, View arg1,
+					int position, long id) {
+				mFaceDetectorNeighbors = position;
+			}
 
+			@Override
+			public void onNothingSelected(AdapterView<?> arg0) {
+				// TODO Auto-generated method stub
+				
+			}
+		}); 
+		List<String> scales = new ArrayList<String>();
+		for (float i = 1.1f; i <= 2.0f; i += 0.1f) {
+			scales.add(String.valueOf(i));
+		}
+		adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, scales);
+		mCameraScaleFactor.setAdapter(adapter);
+		mCameraScaleFactor.setOnItemSelectedListener(new OnItemSelectedListener() {
+
+			@Override
+			public void onItemSelected(AdapterView<?> arg0, View arg1,
+					int position, long id) {
+				mFaceDetectorScaleFactor = 1.1f + position * 0.1f;
+			}
+
+			@Override
+			public void onNothingSelected(AdapterView<?> arg0) {
+				// TODO Auto-generated method stub
+				
+			}
+		});
+	}
+	
 	@Override
 	public void onDestroy()	{
 		super.onDestroy();
@@ -187,14 +258,8 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
 
     private void loadCascade()
     {
-    	File cascadeEye = readCascadeXML("haarcascade_eye.xml");
-        File cascadeFrontalFace = readCascadeXML("haarcascade_frontalface_alt2.xml");
-        File cascadeLeftEye = readCascadeXML("haarcascade_lefteye_2splits.xml");
-        File cascadeRightEye = readCascadeXML("haarcascade_righteye_2splits.xml");
-        File cascadeSmile = readCascadeXML("haarcascade_smile.xml");
-		mCascadeClassifier = loadCascadeClassifier(cascadeEye.getAbsolutePath(),
-        		cascadeFrontalFace.getAbsolutePath(), cascadeLeftEye.getAbsolutePath(),
-        		cascadeRightEye.getAbsolutePath(), cascadeSmile.getAbsolutePath());
+    	File cascadeFile = readCascadeXML("lbpcascade_frontalface.xml");
+		mCascadeClassifier = new CascadeClassifier(cascadeFile.getAbsolutePath());
     }
     
     private File readCascadeXML(String file) {
@@ -222,18 +287,40 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
     	return cascadeFile;
     }
     
+    private void updateAnimation() {
+    	mAnimation.moveToCoordinate(new Coordinate(mFaceTrack.x + mFaceTrack.width / 2, 
+    			mFaceTrack.y + mFaceTrack.height / 2));
+    }
+    
     @Override
     public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
         mRgba = inputFrame.rgba();
         mGray = inputFrame.gray();
-        if (this.mCount % S_FRAME_RATE == 0) {
-        	
-            int[] faceRect = getFace(mGray.getNativeObjAddr(), mCascadeClassifier);
-            mFaceTrack = new Rect(faceRect[0], faceRect[1], faceRect[2], faceRect[3]);
-            mAnimation.moveToCoordinate(new Coordinate(mFaceTrack.x + mFaceTrack.width / 2, mFaceTrack.y + mFaceTrack.height / 2));
+        if (this.mFrameCount % S_FRAME_RATE == 0) {
+        	if (mAbsoluteFaceSize == 0) {
+                int height = mGray.rows();
+                if (Math.round(height * S_RELATIVE_FACE_SIZE) > 0) {
+                    mAbsoluteFaceSize = Math.round(height * S_RELATIVE_FACE_SIZE);
+                }
+            }
+        	MatOfRect faces = new MatOfRect();
+        	if (mFaceDetectorScaleFactor <= 1) {
+        		mFaceDetectorScaleFactor = 1.5;
+        	}
+        	mCascadeClassifier.detectMultiScale(mGray, faces, this.mFaceDetectorScaleFactor, this.mFaceDetectorNeighbors, 2,
+                    new Size(mAbsoluteFaceSize, mAbsoluteFaceSize), new Size());
+        	Rect[] rects = faces.toArray();
+        	if (rects.length > 0) {
+        		mFaceTrack = faces.toArray()[0];
+        		updateAnimation();
+        	} else {
+        		mFaceTrack = null;
+        	}
         }
-        ++this.mCount;
-        Core.rectangle(mRgba, mFaceTrack.br(), mFaceTrack.tl(), new Scalar(255, 0, 0));
+        if (mFaceTrack != null) {
+        	Core.rectangle(mRgba, mFaceTrack.tl(), mFaceTrack.br(), new Scalar(255, 0, 0), 3);
+        }
+        ++this.mFrameCount; 
         return mRgba;
     }
 
